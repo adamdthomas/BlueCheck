@@ -5,24 +5,21 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BlueChecker"
         mc:Ignorable="d"
-        Title="BlueSource Checker" Height="386.406" Width="289.925">
+        Title="BlueSource Checker V0.1" Height="386.406" Width="440.592">
     <Grid Margin="0,0,2,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="27*"/>
             <RowDefinition Height="44*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="333*"/>
-            <ColumnDefinition Width="182*"/>
+            <ColumnDefinition Width="115*"/>
+            <ColumnDefinition Width="66*"/>
+            <ColumnDefinition Width="99*"/>
         </Grid.ColumnDefinitions>
         <Button x:Name="btStartStop" Content="Start" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="75" Height="43" Click="btStartStop_Click"/>
-        <Label x:Name="label" Content="Status:" HorizontalAlignment="Left" Height="23" Margin="145,7,0,0" VerticalAlignment="Top" Width="50" Grid.ColumnSpan="2"/>
-        <Label x:Name="label_Copy" Content="Last Check:" HorizontalAlignment="Left" Height="23" Margin="121,32,0,0" VerticalAlignment="Top" Width="74" Grid.ColumnSpan="2"/>
-        <TextBlock x:Name="tbStatus" Grid.Column="1" HorizontalAlignment="Left" Margin="14,12,0,0" TextWrapping="Wrap" Text="none" VerticalAlignment="Top"/>
-        <TextBlock x:Name="textBlock_Copy" Grid.Column="1" HorizontalAlignment="Left" Margin="14,37,0,0" TextWrapping="Wrap" Text="none" VerticalAlignment="Top"/>
-        <TextBox x:Name="txMain" Grid.ColumnSpan="2" HorizontalAlignment="Left" Height="231" Margin="10,78,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="260" Grid.RowSpan="2"/>
+        <TextBox x:Name="txMain" Grid.ColumnSpan="3" HorizontalAlignment="Left" Height="267" Margin="10,78,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="411" Grid.RowSpan="2"/>
         <Label x:Name="label_Copy1" Content="Log:" HorizontalAlignment="Left" Height="29" Margin="5,53,0,0" VerticalAlignment="Top" Width="74"/>
-        <Button x:Name="btTestEmail" Content="Test Email" Grid.Column="1" HorizontalAlignment="Left" Margin="14,179,0,0" Grid.Row="1" VerticalAlignment="Top" Width="75" Click="btTestEmail_Click"/>
+        <Button x:Name="btTestEmail" Content="Test Email" HorizontalAlignment="Left" Margin="92,10,0,0" VerticalAlignment="Top" Width="75" Click="btTestEmail_Click" Height="43"/>
 
     </Grid>
 </Window>

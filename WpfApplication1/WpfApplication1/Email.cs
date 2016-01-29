@@ -1,20 +1,15 @@
-﻿using OpenQA.Selenium.Chrome;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mail;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace BlueChecker
 {
-    class Threader
+    class Email
     {
-        
+
+
     }
-  
 }
-
-
-    
-

@@ -2,16 +2,11 @@
 using System.Collections.Generic;
 using System.Windows;
 using System.Threading;
-using OpenQA.Selenium.Chrome;
-using SimpleBrowser.Network;
-using SimpleBrowser.Elements;
-using SimpleBrowser.Parser;
-using SimpleBrowser.Query.Selectors;
 using OpenQA.Selenium;
 using System.Net.Mail;
-using SimpleBrowser.WebDriver;
 using System.Diagnostics;
 using System.Text;
+using OpenQA.Selenium.PhantomJS;
 
 namespace BlueChecker
 {
@@ -25,9 +20,12 @@ namespace BlueChecker
         public Thread CheckingThread;
         public static Dictionary<string, string> CurConfig = new Dictionary<string, string>();
         public static bool LoggedIn = false;
+        public static bool FailedLastTime = false;
         public static char c1 = (char)10;
         public static string L = c1.ToString();
         public static byte[] myBytes = Encoding.ASCII.GetBytes("leach");
+        public static Int64 LastSentAt = 0;
+        public static Int64 CurrentEPOCH;
 
         public void LogFromThread(string Message)
         {
@@ -47,10 +45,15 @@ namespace BlueChecker
         {
             while (isStarted)
             {
+
+                CurrentEPOCH = MainMethods.GetEPOCHTimeInMilliSeconds();
                 try
                 {
-       
-                    WebAutomationToolkit.Web.WebDriver = new ChromeDriver();
+
+                    var driverService = PhantomJSDriverService.CreateDefaultService();
+                    driverService.HideCommandPromptWindow = true;
+
+                    WebAutomationToolkit.Web.WebDriver = new PhantomJSDriver(driverService);
                     WebAutomationToolkit.Web.NavigateToURL(CurConfig["url"]);
                     WebAutomationToolkit.Web.Sync.SyncByID("ctl00_ContentPlaceHolder1_UsernameTextBox", 30);
                     LogFromThread("Attempting to log in with username: " + CurConfig["username"]);
@@ -71,17 +74,30 @@ namespace BlueChecker
 
                     if (LoggedIn)
                     {
+                        if (FailedLastTime)
+                        {
+                            SendEmail(CurConfig["tolist"], "BlueSource is back up!", "BlueSource is now accessable using username: " + CurConfig["username"] + L + CurConfig["url"] + L + "Loged in from on machine located @ " + MainMethods.GetPublicIP());
+                        }
                         LogFromThread("Login was successfull!");
                         ConfigData.WriteToLog("Login was successfull with username: " + CurConfig["username"]);
                         DateTime DT1 = DateTime.Now;
                         DateTime DT2 = DT1.AddSeconds(Int32.Parse(CurConfig["cycletimeinseconds"]));
                         LogFromThread("Next check will take place around: " + DT2.ToString("MM/dd/yy HH:mm:ss"));
-                        
+                        FailedLastTime = false;
                     }
                     else
                     {
+                        
                         LogFromThread("Login failed.");
-                        SendEmail(CurConfig["tolist"], "BlueSource is Down", "BlueSource is not accessable using username: " + CurConfig["username"] + L + CurConfig["url"]);
+                        Int64 EI = Int64.Parse(CurConfig["emailintervalinseconds"]) * 1000;
+                        Int64 TimeElapsed = CurrentEPOCH - LastSentAt;
+
+                        if (TimeElapsed > EI)
+                        {
+                            SendEmail(CurConfig["tolist"], "BlueSource is Down", "BlueSource is not accessable using username: " + CurConfig["username"] + L + CurConfig["url"] + L + "Detected on machine located @ " + MainMethods.GetPublicIP() + L + L + this.Title);
+                            LastSentAt = MainMethods.GetEPOCHTimeInMilliSeconds();
+                        }
+                        FailedLastTime = true;
                         ConfigData.WriteToLog("Login was NOT successfull with username: " + CurConfig["username"] + " emails have been sent: " + CurConfig["tolist"]);
                     }
 
@@ -96,8 +112,12 @@ namespace BlueChecker
                 }
                 Int32 t = Int32.Parse(CurConfig["cycletimeinseconds"]) * 1000;
                 Thread.Sleep(t);
+                //Clean thread junk
+                WebAutomationToolkit.Web.WebDriver = null;
+                System.GC.Collect();
+
             }
-            var n = 1;
+
         }
 
         public MainWindow()
@@ -137,7 +157,7 @@ namespace BlueChecker
 
         private void btTestEmail_Click(object sender, RoutedEventArgs e)
         {
-            SendEmail(CurConfig["tolist"], "Test Email", "This is a test email from the bluesource checker application.");
+            SendEmail(CurConfig["tolist"], "Test Email", "This is a test email from the bluesource checker application located @ " + MainMethods.GetPublicIP() + L + L + this.Title);
             ConfigData.WriteToLog("Test emails have been sent: " + CurConfig["tolist"]);
         }
 

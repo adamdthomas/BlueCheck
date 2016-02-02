@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BlueChecker"
         mc:Ignorable="d"
-        Title="BlueSource Checker V0.5" Height="386.406" Width="535.592" ResizeMode="CanMinimize">
+        Title="BlueSource Checker V0.8" Height="386.406" Width="535.592" ResizeMode="CanMinimize">
     <Grid Margin="0,0,2,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="27*"/>

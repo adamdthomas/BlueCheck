@@ -54,8 +54,7 @@ namespace BlueChecker
             txMain.AppendText(Message + L);
             txMain.ScrollToEnd();
         }
-
-
+        
         public void UpdateStatus(string Message)
         {
             lbStatus.Dispatcher.Invoke(
@@ -69,7 +68,6 @@ namespace BlueChecker
             lbStatus.Content = "Running since: " + StartTime.ToString("MM/dd/yy HH:mm:ss") + " - " + NumberOfChecks.ToString() + " Checks - " + Message; 
         
         }
-
 
         public void Checker()
         {
@@ -264,7 +262,10 @@ namespace BlueChecker
             InitializeComponent();
            ConfigData CurCon = new ConfigData();
             CurConfig = CurCon.GetConfigData();
+            MinimizeToTray.Enable(this);
+
         }
+    
 
         private void btStartStop_Click(object sender, RoutedEventArgs e)
         {
@@ -284,6 +285,7 @@ namespace BlueChecker
 
                 StartTime = DateTime.Now;
                 //starting checker
+                CurConfig = null;
                 ConfigData CurCon = new ConfigData();
                 CurConfig = CurCon.GetConfigData();
                 CheckingThread = new Thread(new ThreadStart(Checker));
@@ -355,6 +357,16 @@ namespace BlueChecker
             PassEnc NewPassEnc = new PassEnc();
             NewPassEnc.Show();
             //Window1.IsVisibleProperty = true;
+        }
+
+        private void wnBlueCheck_Closed(object sender, EventArgs e)
+        {
+
+        }
+
+        private void wnBlueCheck_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
     }
 }

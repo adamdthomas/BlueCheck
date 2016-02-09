@@ -15,6 +15,24 @@ namespace BlueChecker
         private static string LogName = ("BCClientLog-" + DateTime.Now.ToString("D") + ".txt").Replace(@"/", ".").Replace(":", ".");
         public static string LogFullPath = LogPath + LogName;
 
+        public string GetParameter(string ParameterName)
+        {
+            string retVal = "";
+            try
+            {
+                retVal = dicConfig[ParameterName];
+            }
+            catch (Exception)
+            {
+              
+
+                throw;
+            }
+            return retVal;
+        }
+
+
+
         public Dictionary<string, string> GetConfigData()
         {
             //Set up config file with defualt values if it doesnt exist
@@ -30,12 +48,16 @@ namespace BlueChecker
                 //Load defaults for new machine
                 dicConfig["url"] = "https://bluesource.orasi.com";
                 dicConfig["username"] = "usernamehere";
-                dicConfig["password"] = "passwordhere";
+                dicConfig["password"] = "encryptedpasswordhere";
                 dicConfig["gmailusername"] = "gmailusernamehere";
-                dicConfig["gmailpassword"] = "gmailpasswordhere";
+                dicConfig["gmailpassword"] = "encryptedgmailpasswordhere";
                 dicConfig["tolist"] = "CommaDelimitedToEmailList";
                 dicConfig["cycletimeinseconds"] = "60";
                 dicConfig["emailintervalinseconds"] = "600";
+                dicConfig["autostart"] = "TRUE";
+                dicConfig["urls"] = "https://jenkins.orasi.com,http://orasi.com,https://autorun.orasi.com";
+                dicConfig["ids"] = "jenkins - home - link,ctl00_onetidHeadbnnr2,jenkins - home - link";
+
                 SetConfigData();
 
             }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 
 namespace BlueChecker
@@ -42,10 +43,11 @@ namespace BlueChecker
         {
             try
             {
-                foreach (Process proc in Process.GetProcessesByName(ProcessName))
-                {
-                    proc.Kill();
-                }
+                System.Diagnostics.Process.GetProcesses()
+                                         .Where(x => x.ProcessName.ToLower()
+                                                      .StartsWith(ProcessName))
+                                         .ToList()
+                                         .ForEach(x => x.Kill());
             }
             catch (Exception ex)
             {

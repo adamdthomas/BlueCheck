@@ -7,6 +7,7 @@ using System.Net.Mail;
 using System.Diagnostics;
 using System.Text;
 using OpenQA.Selenium.PhantomJS;
+using OpenQA.Selenium.Chrome;
 
 namespace BlueChecker
 {
@@ -17,8 +18,9 @@ namespace BlueChecker
     {
         public delegate void ThreadLoggerCallback(string message);
         public delegate void StatusCallback(string message);
+        public delegate void ProgressCallback(int min, int max, int val);
 
-        public bool isStarted = false;
+        public static bool isStarted = false;
         public Thread CheckingThread;
         public static Dictionary<string, string> CurConfig = new Dictionary<string, string>();
         public bool LoggedIn = false;
@@ -31,15 +33,52 @@ namespace BlueChecker
         public DateTime StartTime;
         public DateTime CurrentTime;
         public DateTime ElapsedTime;
-        public Int32 NumberOfChecks = 0;
+        public Int32 NumberOfPasses = 0;
+        public Int32 NumberOfFailures = 0;
         public Int32 LogLines = 0;
         public static Int64[] aLastSentAt;
         public static bool[] aFailedLastTime;
         public int URLCount = 0;
-        public string[] urls;
+        public string[] urlandids;
         public string[] ids;
         public Stopwatch stopwatch = new Stopwatch();
+        public string BCVersion;
+        public int CurrentProgress = 1;
 
+        public void Waiter()
+        {
+            int t = int.Parse(CurConfig["cycletimeinseconds"]);
+            t = t * 100;
+            ProgressFromThread(0, t, t);
+
+
+            for (int w = t; w > 0; w--)
+            {
+                if (!isStarted)
+                {
+                    Stopper();
+                    break; 
+                }
+                ProgressFromThread(0, t, w);
+                Thread.Sleep(10);
+                UpdateStatus("Waiting... ");
+                
+            }
+
+            ProgressFromThread(0, t, 0);
+            CurrentProgress = 1;
+
+
+        }
+
+        public void Stopper()
+        {
+            UpdateStatus("Stopped");
+            ProgressFromThread(0, 1, 0);
+            CurrentProgress = 1;
+        }
+
+        #region Delegators
 
         public void LogFromThread(string Message)
         {
@@ -73,7 +112,22 @@ namespace BlueChecker
             }
 
         }
-        
+
+        public void ProgressFromThread(int min, int max, int val)
+        {
+            pbMainLoad.Dispatcher.Invoke(
+            new ProgressCallback(this.ProgressLogger),
+            new object[] { min, max, val });
+        }
+
+        private void ProgressLogger(int min, int max, int val)
+        {
+            pbMainLoad.Minimum = min;
+            pbMainLoad.Maximum = max;
+            pbMainLoad.Value = val;
+        }
+
+
         public void UpdateStatus(string Message)
         {
             lbStatus.Dispatcher.Invoke(
@@ -84,14 +138,23 @@ namespace BlueChecker
         private void Status(string Message)
         {
             //Message = DateTime.Now.ToString("MM/dd/yy HH:mm:ss") + " " + Message;
-            lbStatus.Content = "Running since: " + StartTime.ToString("MM/dd/yy HH:mm:ss") + " - " + NumberOfChecks.ToString() + " Checks - " + Message; 
+            lbStatus.Content = "Running since: " + StartTime.ToString("MM/dd/yy HH:mm:ss") + " - " + NumberOfPasses.ToString() + " Passes | " + NumberOfFailures.ToString() + " Failures - " + Message; 
         
         }
+
+        #endregion
 
         public void Checker()
         {
             while (isStarted)
             {
+                if (CurConfig["username"] == "usernamehere")
+                {
+                    LogFromThread("Cannot start because your configuration file is not set up. Please set up your configuration file and try again.");
+                    isStarted = false;
+                    CheckingThread = null;
+                    break;
+                }
 
                 CurrentEPOCH = MainMethods.GetEPOCHTimeInMilliSeconds();
                 try
@@ -100,6 +163,8 @@ namespace BlueChecker
                     var driverService = PhantomJSDriverService.CreateDefaultService();
                     driverService.HideCommandPromptWindow = true;
                     WebAutomationToolkit.Web.WebDriver = new PhantomJSDriver(driverService);
+
+                    //WebAutomationToolkit.Web.WebDriver = new ChromeDriver();
 
                     #region Check BlueSource
                     UpdateStatus("Currently checking: BlueSource");
@@ -112,7 +177,7 @@ namespace BlueChecker
                     WebAutomationToolkit.Web.Edit.SetTextByID("ctl00_ContentPlaceHolder1_UsernameTextBox", CurConfig["username"]);
                     WebAutomationToolkit.Web.Edit.SetTextByID("ctl00_ContentPlaceHolder1_PasswordTextBox", Encryption.SimpleDecryptWithPassword(MainWindow.CurConfig["password"], CurConfig["username"], myBytes.Length));
                     WebAutomationToolkit.Web.Button.ClickByID("ctl00_ContentPlaceHolder1_SubmitButton");
-                    NumberOfChecks++;
+                    
                     UpdateStatus("BlueSource");
       
                     if (WebAutomationToolkit.Web.Sync.SyncByID("search-bar", 30))
@@ -120,11 +185,12 @@ namespace BlueChecker
                         stopwatch.Stop();
                         if (FailedLastTime)
                         {
-                            SendEmail(CurConfig["tolist"], "BlueSource is back up!", "BlueSource is now accessable using username: " + CurConfig["username"] + L + CurConfig["url"] + L + "Loged in from on machine located @ " + MainMethods.GetPublicIP());
+                            SendEmail(CurConfig["tolist"], "BlueSource is back up!", "BlueSource is now accessable using username: " + CurConfig["username"] + L + CurConfig["url"] + L + "Loged in from on machine located @ " + MainMethods.GetPublicIP() + L + L + BCVersion);
                         }
                         LogFromThread("BlueSource login was successfull: " + stopwatch.Elapsed.ToString());
                         ConfigData.WriteToLog("Login was successfull with username: " + CurConfig["username"] + ": " + stopwatch.Elapsed.ToString());
                         FailedLastTime = false;
+                        NumberOfPasses++;
                     }
                     else
                     {
@@ -134,25 +200,35 @@ namespace BlueChecker
 
                         if (TimeElapsed > EI)
                         {
-                            SendEmail(CurConfig["tolist"], "BlueSource is Down", "BlueSource is not accessable using username: " + CurConfig["username"] + L + CurConfig["url"] + L + "Detected on machine located @ " + MainMethods.GetPublicIP() + L + L + this.Title);
+                            SendEmail(CurConfig["tolist"], "BlueSource is Down", "BlueSource is not accessable using username: " + CurConfig["username"] + L + CurConfig["url"] + L + "Detected on machine located @ " + MainMethods.GetPublicIP() + L + L + BCVersion);
                             LastSentAt = MainMethods.GetEPOCHTimeInMilliSeconds();
                         }
                         FailedLastTime = true;
                         ConfigData.WriteToLog("Login was NOT successfull with username: " + CurConfig["username"] + " emails have been sent: " + CurConfig["tolist"]);
+                        NumberOfFailures++;
                     }
-                    #endregion
 
+                    ProgressFromThread(0, URLCount + 1, CurrentProgress++);
+       
+                    #endregion
                     #region Check Generic Sites
                     for (int i = 0; i < URLCount; i++)
                     {
-                        string CheckURL = urls[i];
-                        String CheckID = ids[i];
+                        if (!isStarted)
+                        {
+                            Stopper();
+                            break;
+                        }
+                        string[] aurlandids = urlandids[i].Split(';');
+
+                        string CheckURL = aurlandids[0];
+                        string CheckID = aurlandids[1];
                         UpdateStatus("Currently checking: " + CheckURL);
                         LogFromThread("Attempting to navigate to " + CheckURL);
                         stopwatch.Reset();
                         stopwatch.Start();
                         WebAutomationToolkit.Web.NavigateToURL(CheckURL);
-                        NumberOfChecks++;
+
                         UpdateStatus(CheckURL);
 
                         if (WebAutomationToolkit.Web.Sync.SyncByID(CheckID, 30))
@@ -161,12 +237,13 @@ namespace BlueChecker
                            
                             if (aFailedLastTime[i])
                             {
-                                SendEmail(CurConfig["tolist"], CheckURL + " is back up!", CheckURL + " is now accessable. " + L + "Viewed from on machine located @ " + MainMethods.GetPublicIP() + L + L + this.Title);
+                                SendEmail(CurConfig["tolist"], CheckURL + " is back up!", CheckURL + " is now accessable. " + L + "Viewed from on machine located @ " + MainMethods.GetPublicIP() + L + L + BCVersion);
                             }
                             LogFromThread("Navigating to " + CheckURL + " was successfull: " + stopwatch.Elapsed.ToString());
                             ConfigData.WriteToLog("Navigating to " + CheckURL + " was successfull: " + stopwatch.Elapsed.ToString());
 
                             aFailedLastTime[i] = false;
+                            NumberOfPasses++;
                         }
                         else
                         {
@@ -177,12 +254,14 @@ namespace BlueChecker
 
                             if (TimeElapsed > EI)
                             {
-                                SendEmail(CurConfig["tolist"], CheckURL + " is Down", CheckURL + " is not accessable." + L + "Detected on machine located @ " + MainMethods.GetPublicIP() + L + L + this.Title);
+                                SendEmail(CurConfig["tolist"], CheckURL + " is Down", CheckURL + " is not accessable." + L + "Detected on machine located @ " + MainMethods.GetPublicIP() + L + L + BCVersion);
                                 aLastSentAt[i] = MainMethods.GetEPOCHTimeInMilliSeconds();
                             }
                             aFailedLastTime[i] = true;
                             ConfigData.WriteToLog("Navigating to " + CheckURL + " failed. emails have been sent: " + CurConfig["tolist"]);
+                            NumberOfFailures++;
                         }
+                        ProgressFromThread(0, URLCount + 1, CurrentProgress++);
                     }
                     #endregion 
 
@@ -196,20 +275,17 @@ namespace BlueChecker
                     ConfigData.WriteToLog("BlueSource checking service has encountered a serious error:" + L + L + ex.ToString());
                 }
 
-
-
-
-                DateTime DT1 = DateTime.Now;
+                 DateTime DT1 = DateTime.Now;
                 DateTime DT2 = DT1.AddSeconds(Int32.Parse(CurConfig["cycletimeinseconds"]));
                 LogFromThread("Next check will take place around: " + DT2.ToString("MM/dd/yy HH:mm:ss"));
 
-                Int32 t = Int32.Parse(CurConfig["cycletimeinseconds"]) * 1000;
-                UpdateStatus("Waiting...");
-                Thread.Sleep(t);
-
-                //Clean thread junk
+                //Clean up
                 WebAutomationToolkit.Web.WebDriver = null;
                 System.GC.Collect();
+                MainMethods.KillProcessByName("phantomjs");
+                MainMethods.KillProcessByName("conhost");
+                //MainMethods.RunCMD(@"Taskkill /IM phantomjs.exe /F");
+                Waiter();
 
             }
 
@@ -218,7 +294,7 @@ namespace BlueChecker
         public MainWindow()
         {
             InitializeComponent();
-           ConfigData CurCon = new ConfigData();
+            ConfigData CurCon = new ConfigData();
             CurConfig = CurCon.GetConfigData();
             MinimizeToTray.Enable(this);
 
@@ -233,15 +309,22 @@ namespace BlueChecker
                 ConfigData.WriteToLog("BlueSource checking service has started.");
             }
 
-            urls = CurConfig["urls"].Split(',');
-            ids = CurConfig["ids"].Split(',');
-            URLCount = urls.Length;
+            urlandids = CurConfig["urlandids"].Split(',');
+ 
+            URLCount = urlandids.Length;
             aFailedLastTime = new bool[URLCount];
             aLastSentAt = new Int64[URLCount];
 
-        }
-    
+            BCVersion = this.Title;
 
+            pbMainLoad.Maximum = URLCount + 1;
+            pbMainLoad.Minimum = 0;
+            
+
+
+        }
+
+        #region UI
         private void btStartStop_Click(object sender, RoutedEventArgs e)
         {
             if (isStarted)
@@ -268,8 +351,8 @@ namespace BlueChecker
                 CheckingThread.Start();
                 btStartStop.Content = "Stop";
 
-                LogFromThread("BlueSource checking service has started.");
-                ConfigData.WriteToLog("BlueSource checking service has started.");
+                LogFromThread("BlueSource checking service is starting.");
+                ConfigData.WriteToLog("BlueSource checking service is starting.");
             }
         }
 
@@ -343,6 +426,8 @@ namespace BlueChecker
         {
             Application.Current.Shutdown();
         }
+
+        #endregion
     }
 }
         

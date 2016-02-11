@@ -232,7 +232,7 @@ namespace BlueChecker
                             Console.Write(".");
                             IWebElement we = WebDriver.FindElement(By.Id(ObjectID));
 
-                            if (we.Displayed)
+                            if (we.Displayed || we.Enabled)
                             {
                                 Console.WriteLine("Continuing Test");
                                 timeoutreached = false;

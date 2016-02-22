@@ -105,7 +105,7 @@ namespace BlueChecker
             if (LogLines > 1000)
             {
                 txMain.Clear();
-                Message = DateTime.Now.ToString("MM/dd/yy HH:mm:ss") + " " + "UI log has been cleared soon to conserve memory. Check log file for detailed history";
+                Message = DateTime.Now.ToString("MM/dd/yy HH:mm:ss") + " " + "UI log has been cleared to conserve memory. Check log file for detailed history";
                 txMain.AppendText(Message + L);
                 txMain.ScrollToEnd();
                 LogLines = 0;
@@ -211,6 +211,7 @@ namespace BlueChecker
                     ProgressFromThread(0, URLCount + 1, CurrentProgress++);
        
                     #endregion
+
                     #region Check Generic Sites
                     for (int i = 0; i < URLCount; i++)
                     {
@@ -223,6 +224,8 @@ namespace BlueChecker
 
                         string CheckURL = aurlandids[0];
                         string CheckID = aurlandids[1];
+
+
                         UpdateStatus("Currently checking: " + CheckURL);
                         LogFromThread("Attempting to navigate to " + CheckURL);
                         stopwatch.Reset();
@@ -242,6 +245,12 @@ namespace BlueChecker
                             LogFromThread("Navigating to " + CheckURL + " was successfull: " + stopwatch.Elapsed.ToString());
                             ConfigData.WriteToLog("Navigating to " + CheckURL + " was successfull: " + stopwatch.Elapsed.ToString());
 
+                            //if (CheckURL == @"http://orasi.com")
+                            //{
+                            //    int amt = int.Parse(stopwatch.Elapsed.ToString("ss"));
+                            //    Network network = new Network();
+                            //    network.POST("", amt);
+                            //}
                             aFailedLastTime[i] = false;
                             NumberOfPasses++;
                         }
@@ -275,7 +284,7 @@ namespace BlueChecker
                     ConfigData.WriteToLog("BlueSource checking service has encountered a serious error:" + L + L + ex.ToString());
                 }
 
-                 DateTime DT1 = DateTime.Now;
+                DateTime DT1 = DateTime.Now;
                 DateTime DT2 = DT1.AddSeconds(Int32.Parse(CurConfig["cycletimeinseconds"]));
                 LogFromThread("Next check will take place around: " + DT2.ToString("MM/dd/yy HH:mm:ss"));
 
@@ -428,6 +437,7 @@ namespace BlueChecker
         }
 
         #endregion
+
     }
 }
         

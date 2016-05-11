@@ -288,13 +288,14 @@ namespace BlueChecker
                 DateTime DT2 = DT1.AddSeconds(Int32.Parse(CurConfig["cycletimeinseconds"]));
                 LogFromThread("Next check will take place around: " + DT2.ToString("MM/dd/yy HH:mm:ss"));
 
+                Waiter();
                 //Clean up
                 WebAutomationToolkit.Web.WebDriver = null;
                 System.GC.Collect();
                 MainMethods.KillProcessByName("phantomjs");
                 MainMethods.KillProcessByName("conhost");
                 //MainMethods.RunCMD(@"Taskkill /IM phantomjs.exe /F");
-                Waiter();
+               
 
             }
 

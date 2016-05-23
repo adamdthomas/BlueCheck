@@ -294,8 +294,9 @@ namespace BlueChecker
                 System.GC.Collect();
                 MainMethods.KillProcessByName("phantomjs");
                 MainMethods.KillProcessByName("conhost");
+                MainMethods.KillProcessByName("WerFault.exe");
                 //MainMethods.RunCMD(@"Taskkill /IM phantomjs.exe /F");
-               
+
 
             }
 
